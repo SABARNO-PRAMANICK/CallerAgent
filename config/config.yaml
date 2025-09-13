@@ -1,0 +1,33 @@
+models:
+  stt: whisper-large-v3-turbo 
+  tts: playai-tts
+  bot: gpt-oss-120b
+
+audio:
+  sample_rate: 16000
+  chunk_size: 2048
+  format: int16
+
+tts:
+  language: en
+  voice: standard
+  async_playback: true
+
+bot:
+  context_window: 5
+  document_support: true
+  intent_detection: true
+
+logging:
+  level: INFO
+  log_file: /app/logs/voice_ai.log
+
+environment:
+  use_gpu: true
+  langchain_enabled: true
+
+features:
+  whatsapp_integration: true
+  commerce_assistance: true
+  lead_qualification: true
+  appointment_booking: true
