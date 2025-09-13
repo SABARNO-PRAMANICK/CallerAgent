@@ -24,7 +24,6 @@ faiss-cpu
 chromadb
 sentence-transformers
 huggingface-hub
-yaml
 
 
 -e .
