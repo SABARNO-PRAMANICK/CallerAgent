@@ -14,12 +14,13 @@ def main():
     load_dotenv()
     
     sample_rate = 16000
-    chunk_size = 2048
+    chunk_size = 8192  # 512ms at 16kHz
     language = "en"
     tts_voice = "Fritz-PlayAI"
     context_window = 5
+    device = None  # Set to your microphone device ID if needed
     
-    streamer = AudioStreamer(sample_rate=sample_rate, chunk_size=chunk_size)
+    streamer = AudioStreamer(sample_rate=sample_rate, chunk_size=chunk_size, device=device)
     vad = VADProcessor(sample_rate=sample_rate, chunk_size=chunk_size, language=language)
     
     conversation_history = []
@@ -49,14 +50,11 @@ def main():
                     
                     audio_bytes = synthesize_speech(text=response, voice=tts_voice)
                     
-                    # Parse WAV bytes
                     bio = io.BytesIO(audio_bytes)
                     rate, data = wavfile.read(bio)
                     
-                    # Determine channels
                     channels = data.shape[1] if data.ndim > 1 else 1
                     
-                    # Play audio
                     play_obj = sa.play_buffer(
                         data,
                         channels,

@@ -9,10 +9,11 @@ class AudioStreamer:
     Real-time audio streamer from microphone.
     Captures audio in chunks of 2048 samples (128ms at 16kHz).
     """
-    def __init__(self, sample_rate: int = 16000, chunk_size: int = 2048, channels: int = 1):
+    def __init__(self, sample_rate: int = 16000, chunk_size: int = 2048, channels: int = 1, device: int = None):
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
         self.channels = channels
+        self.device = device
         self.audio_queue = queue.Queue()
         self.stream = None
         self.is_running = False
@@ -32,6 +33,7 @@ class AudioStreamer:
             return
         try:
             self.stream = sd.InputStream(
+                device=self.device,
                 callback=self._callback,
                 channels=self.channels,
                 samplerate=self.sample_rate,
