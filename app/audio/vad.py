@@ -18,11 +18,19 @@ def chunk_to_wav_bytes(chunk: np.ndarray, sample_rate: int = 16000) -> bytes:
         WAV file bytes.
     """
     bio = io.BytesIO()
-    # Flatten if stereo, but assuming mono
     if chunk.ndim == 2 and chunk.shape[1] == 1:
         chunk = chunk.flatten()
+    elif chunk.ndim != 1:
+        logger.error(f"Invalid chunk shape: {chunk.shape}")
+        raise ValueError("Chunk must be mono audio")
+    
+    # Log audio stats for debugging
+    logger.debug(f"Chunk stats: shape={chunk.shape}, dtype={chunk.dtype}, max={chunk.max()}, min={chunk.min()}")
+    
     wavfile.write(bio, sample_rate, chunk.astype(np.int16))
-    return bio.getvalue()
+    wav_bytes = bio.getvalue()
+    logger.debug(f"Generated WAV bytes: length={len(wav_bytes)}")
+    return wav_bytes
 
 class VADProcessor:
     """
@@ -37,8 +45,8 @@ class VADProcessor:
         self.is_speaking = False
         self.speech_count = 0
         self.no_speech_count = 0
-        self.speech_start_threshold = 2  # Consecutive speech chunks to start detection
-        self.speech_end_threshold = 5    # Consecutive no-speech chunks to end detection
+        self.speech_start_threshold = 2
+        self.speech_end_threshold = 3  # Reduced for faster segment completion
         logger.info("VAD Processor initialized with STT-based detection.")
 
     def _is_speech_chunk(self, chunk: np.ndarray) -> bool:
@@ -51,7 +59,7 @@ class VADProcessor:
             return is_speech
         except Exception as e:
             logger.error(f"Error in VAD transcription: {e}")
-            return False  # Assume no speech on error to avoid false positives
+            return False
 
     def process_chunk(self, chunk: np.ndarray) -> Optional[bytes]:
         """
@@ -66,7 +74,6 @@ class VADProcessor:
         is_speech = self._is_speech_chunk(chunk)
 
         if not self.is_speaking:
-            # Potential start of speech
             if is_speech:
                 self.speech_count += 1
                 if self.speech_count >= self.speech_start_threshold:
@@ -76,15 +83,13 @@ class VADProcessor:
                     logger.info("Speech detection started.")
                     return None
                 else:
-                    # Not enough consecutive speech yet
                     self.buffer = b''
             else:
                 self.speech_count = 0
                 self.buffer = b''
             return None
         else:
-            # Currently speaking
-            self.buffer += chunk_to_wav_bytes(chunk, self.sample_rate)[44:]  # Append raw PCM after WAV header (44 bytes)
+            self.buffer += chunk_to_wav_bytes(chunk, self.sample_rate)[44:]
             if is_speech:
                 self.no_speech_count = 0
             else:
@@ -100,7 +105,6 @@ class VADProcessor:
     def _reconstruct_wav(self, raw_pcm_bytes: bytes) -> bytes:
         """Reconstruct full WAV from concatenated raw PCM bytes."""
         bio = io.BytesIO()
-        # Write WAV header
         bio.write(b'RIFF')
         bio.write((36 + len(raw_pcm_bytes)).to_bytes(4, 'little'))
         bio.write(b'WAVE')
@@ -133,8 +137,7 @@ class VADProcessor:
             except Exception as e:
                 logger.error(f"Error processing stream chunk: {e}")
                 continue
-        # Process any remaining buffer
         if self.buffer and self.is_speaking:
-            segment = self._reconstruct_wav(self.buffer[44:])  # Remove first header if present
+            segment = self._reconstruct_wav(self.buffer[44:])
             yield segment
             logger.info("Final speech segment yielded.")
