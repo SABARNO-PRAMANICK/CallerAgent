@@ -1,23 +1,36 @@
 import logging
-from pathlib import Path
+import os
 
 def setup_logger():
-    """Configure the logger with hardcoded settings."""
-    log_level = logging.INFO
-    log_file = "/app/logs/voice_ai.log"
+    """Set up logger with file and console handlers."""
+    logger = logging.getLogger("voice_ai")
+    logger.setLevel(logging.DEBUG)  # Set to DEBUG for detailed logs
     
-    log_path = Path(log_file).parent
-    log_path.mkdir(parents=True, exist_ok=True)
+    # Create logs directory if it doesn't exist
+    os.makedirs("app/logs", exist_ok=True)
     
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d | %(message)s",
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler()
-        ]
+    # File handler
+    file_handler = logging.FileHandler("app/logs/voice_ai.log", encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(name)s:%(funcName)s:%(lineno)d | %(message)s"
     )
+    file_handler.setFormatter(file_formatter)
     
-    return logging.getLogger("calleragent")
+    # Console handler with UTF-8 encoding
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(name)s:%(funcName)s:%(lineno)d | %(message)s"
+    )
+    console_handler.setFormatter(console_formatter)
+    console_handler.setStream(open(console_handler.stream.fileno(), mode='w', encoding='utf-8', buffering=1))
+    
+    # Clear existing handlers to avoid duplicates
+    logger.handlers = []
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
 
 logger = setup_logger()
