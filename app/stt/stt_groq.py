@@ -27,15 +27,15 @@ def transcribe_audio(audio_bytes: bytes, language: str = "en") -> str:
         file_like = io.BytesIO(audio_bytes)
         
         transcription = client.audio.transcriptions.create(
-            file=file_like,
+            file=("audio.wav", file_like),
             model="whisper-large-v3-turbo",
             language=language,
             response_format="text",
             temperature=0.0
         )
         
-        logger.info(f"Transcription completed successfully: {transcription.text[:50]}...")
-        return transcription.text
+        logger.info(f"Transcription completed successfully: {transcription[:50]}...")
+        return transcription
     except Exception as e:
         logger.error(f"Error during transcription: {str(e)}")
         raise
@@ -56,7 +56,7 @@ def transcribe_with_timestamps(audio_bytes: bytes, language: str = "en") -> dict
         file_like = io.BytesIO(audio_bytes)
         
         transcription = client.audio.transcriptions.create(
-            file=file_like,
+            file=("audio.wav", file_like),
             model="whisper-large-v3-turbo",
             language=language,
             response_format="verbose_json",
