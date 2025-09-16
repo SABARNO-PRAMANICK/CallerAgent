@@ -10,3 +10,7 @@ wheels/
 .venv
 env
 .env
+
+# Testing
+test_chunks/
+logs/
